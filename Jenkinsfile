@@ -1,82 +1,139 @@
-
 pipeline {
     agent any
-
     tools {
         maven 'maven3'
     }
     environment {
         SCANNER_HOME = tool 'sonar-scanner'
-        SONARQUBE_SERVER = 'sonar-server' // The name of your SonarQube server
-        SLACK_CHANNEL = 'jenkins-alert' // Slack channel for notifications
-        ARTIFACTS_DIR = "target"  // Directory for generated artifacts
-        MAVEN_OPTS = '--add-opens java.base/java.lang=ALL-UNNAMED'
+    }
+
+    triggers {
+        githubPush()  // Automatically triggers the pipeline when code is pushed to GitHub
     }
 
     stages {
-        // Clean the workspace before starting the build
-        stage('Clean Workspace') {
-            steps {
-                cleanWs()  // Clean the workspace before starting the build
-            }
-        }
-        // Checkout the code from the GitHub repository
         stage('Checkout') {
             steps {
-                checkout scm
+                checkout scm  // Checkout the latest code from the repository
             }
         }
 
-        // Build the project using Maven and generate artifacts
         stage('Build') {
             steps {
                 script {
-                    echo 'Building the project...'
+                    echo 'Building project...'
                     sh 'mvn clean install'  // Build the project using Maven
                 }
             }
         }
 
-        // Stage 3: Run SonarQube analysis to check code quality
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv(SONARQUBE_SERVER) {
-                    sh '''
-                        $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Java \
-                        -Dsonar.java.binaries=. \
-                        -Dsonar.projectKey=Java
-                    '''
+                withSonarQubeEnv('sonar-server') {
+                    sh ''' 
+                    $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Java \
+                    -Dsonar.java.binaries=. \
+                    -Dsonar.projectKey=Java
+                    '''  // Run SonarQube analysis
                 }
             }
         }
 
-        //  Wait for the Quality Gate to pass or fail
         stage('Quality Gate') {
             steps {
                 script {
+                    // Wait for the quality gate and abort pipeline if the quality gate fails
                     waitForQualityGate abortPipeline: true, credentialsId: 'sonar-token'
                 }
             }
         }
 
-        // Archive generated artifacts for downstream job
-        stage('Archive Artifacts') {
+        stage('Test') {
             steps {
                 script {
-                    sh 'ls -al target'  // List the contents of the target directory
-                    archiveArtifacts artifacts: 'target/*.war', allowEmptyArchive: false
+                    echo 'Running tests...'
+                    sh 'mvn test'  // Run unit tests
+
+                    // Publish test results from Surefire reports (correct the path)
+                    junit '**/target/surefire-reports/*.xml'  // Publish JUnit test results
+
+                    // Optionally, publish HTML test reports
+                    publishHTML(target: [
+                        reportName: 'Test Results',
+                        reportDir: 'target/surefire-reports',  // Ensure this is the correct directory for the HTML report
+                        reportFiles: 'surefire-report.html',  // Ensure this is the correct file for the HTML report
+                        keepAll: true
+                    ])
                 }
             }
         }
 
+
+        stage('Deploy to Beta') {
+            when {
+                branch 'beta'  // Trigger this stage only if the branch is 'beta'
+            }
+            steps {
+                script {
+                    echo 'Deploying to Beta environment...'
+                    sh './deploy-to-beta.sh'  // Deploy to Beta environment
+                }
+            }
+        }
+
+        stage('Deploy to OneBox') {
+            when {
+                branch 'onebox'  // Trigger this stage only if the branch is 'onebox'
+            }
+            steps {
+                script {
+                    echo 'Deploying to OneBox environment...'
+                    sh './deploy-to-onebox.sh'  // Deploy to OneBox environment
+                }
+            }
+        }
+
+        stage('Deploy to Prod') {
+            when {
+                branch 'prod'  // Trigger this stage only if the branch is 'prod'
+            }
+            steps {
+                script {
+                    echo 'Deploying to Prod environment...'
+                    sh './deploy-to-prod.sh'  // Deploy to Production environment
+                }
+            }
+        }
+
+        stage('Post-Deployment Actions') {
+            steps {
+                script {
+                    // Send notification to Slack about deployment status
+                    slackSend(channel: env.SLACK_CHANNEL, message: "Deployment successful for ${env.BRANCH_NAME} branch.")
+                }
+            }
+        }
+
+        stage('Archive Reports') {
+            steps {
+                script {
+                    // Archive HTML and PDF reports generated during the test phase
+                    archiveArtifacts allowEmptyArchive: true, artifacts: '**/target/*.html, **/target/*.pdf', followSymlinks: false
+                }
+            }
+        }
     }
+
     post {
         success {
-            slackSend (channel: SLACK_CHANNEL, message: "Pipeline completed successfully :tada:", color: 'good')
+            // Send a success notification to Slack when the pipeline completes successfully
+            slackSend(channel: env.SLACK_CHANNEL, message: "Build ${env.BUILD_ID} completed successfully!")
+            echo 'Pipeline completed successfully.'
         }
         failure {
-            slackSend (channel: SLACK_CHANNEL, message: "Pipeline failed :x:", color: 'danger')
+            // Send a failure notification to Slack when the pipeline fails
+            slackSend(channel: env.SLACK_CHANNEL, message: "Build ${env.BUILD_ID} failed. Please check the logs!")
+            echo 'Pipeline failed.'
         }
-   }
+    }
 }
-	
