@@ -57,10 +57,12 @@ pipeline {
         stage('Archive Artifacts') {
             steps {
                 script {
-                    archiveArtifacts artifacts: '**/target/*.jar', allowEmptyArchive: false
+                    sh 'ls -al target'  // List the contents of the target directory
+                    archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: false
                 }
             }
         }
+
     }
 
     post {
