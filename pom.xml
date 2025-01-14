@@ -23,15 +23,15 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Updated Mockito Dependency (mockito-core instead of mockito-all) -->
+        <!-- Mockito Dependency -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>3.12.4</version> <!-- Ensure you're using a compatible version with Java 9+ -->
+            <version>3.12.4</version>
             <scope>test</scope>
         </dependency>
 
-        <!-- Jetty Runner Dependency for running the application -->
+        <!-- Jetty Runner Dependency -->
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-runner</artifactId>
@@ -56,4 +56,25 @@
                             <artifactItems>
                                 <artifactItem>
                                     <groupId>org.eclipse.jetty</groupId>
-                                    <artifactId>jetty-runner</artifactId
+                                    <artifactId>jetty-runner</artifactId>
+                                    <version>9.3.3.v20150827</version>
+                                    <destFileName>jetty-runner.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Maven Surefire Plugin for Running Tests -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0-M5</version>
+                <configuration>
+                    <useSystemClassloader>true</useSystemClassloader>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
