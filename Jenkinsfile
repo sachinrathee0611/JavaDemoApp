@@ -14,14 +14,20 @@ pipeline {
     }
 
     stages {
-        // Stage 1: Checkout the code from the GitHub repository
+        // Clean the workspace before starting the build
+        stage('Clean Workspace') {
+            steps {
+                cleanWs()  // Clean the workspace before starting the build
+            }
+        }
+        // Checkout the code from the GitHub repository
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        // Stage 2: Build the project using Maven and generate artifacts
+        // Build the project using Maven and generate artifacts
         stage('Build') {
             steps {
                 script {
@@ -44,7 +50,7 @@ pipeline {
             }
         }
 
-        // Stage 4: Wait for the Quality Gate to pass or fail
+        //  Wait for the Quality Gate to pass or fail
         stage('Quality Gate') {
             steps {
                 script {
@@ -58,7 +64,7 @@ pipeline {
             steps {
                 script {
                     sh 'ls -al target'  // List the contents of the target directory
-                    archiveArtifacts artifacts: 'target/*.war', allowEmptyArchive: false
+                    archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: false
                 }
             }
         }
@@ -67,10 +73,24 @@ pipeline {
 
     post {
         success {
-            slackSend(channel: SLACK_CHANNEL, message: "Upstream Build ${env.BUILD_ID} completed successfully!")
+            slackSend(
+                channel: SLACK_CHANNEL,
+                message: "Upstream Build ${env.BUILD_ID} completed successfully! Job: ${env.JOB_NAME} ${currentBuild.currentResult}",
+                color: 'good',
+                tokenCredentialId: 'slack-webhook',
+                username: 'Jenkins',
+                iconEmoji: ':jenkins:'
+            )
         }
         failure {
-            slackSend(channel: SLACK_CHANNEL, message: "Upstream Build ${env.BUILD_ID} failed. Please check the logs!")
+            slackSend(
+                channel: SLACK_CHANNEL,
+                message: "Upstream Build ${env.BUILD_ID} failed. Please check the logs! Job: ${env.JOB_NAME} ${currentBuild.currentResult}",
+                color: 'danger',
+                tokenCredentialId: 'slack-webhook',
+                username: 'Jenkins',
+                iconEmoji: ':x:'
+            )
         }
     }
 }
