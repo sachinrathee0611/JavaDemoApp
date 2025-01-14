@@ -5,6 +5,7 @@ pipeline {
     }
     environment {
         SCANNER_HOME = tool 'sonar-scanner'
+        MAVEN_OPTS = '--add-opens java.base/java.lang=ALL-UNNAMED'
     }
 
     triggers {
@@ -54,7 +55,10 @@ pipeline {
                     echo 'Running tests...'
                     sh 'mvn test'  // Run unit tests
 
-                    // Publish test results from Surefire reports (correct the path)
+                    // Ensure the directory and files exist before attempting to publish results
+                    sh 'ls -l target/surefire-reports'  // This will list the files to confirm the reports are generated
+
+                    // Publish test results from Surefire reports (correct the path if necessary)
                     junit '**/target/surefire-reports/*.xml'  // Publish JUnit test results
 
                     // Optionally, publish HTML test reports
@@ -67,6 +71,7 @@ pipeline {
                 }
             }
         }
+
 
 
         stage('Deploy to Beta') {
