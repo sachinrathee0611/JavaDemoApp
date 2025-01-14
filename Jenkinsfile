@@ -71,25 +71,25 @@ pipeline {
 
     }
 
-    post {
+post {
         success {
             slackSend(
-                channel: SLACK_CHANNEL,
+                channel: '#jenkins-alert',  // Slack channel
+                color: 'good',  // Success color (green)
                 message: "Upstream Build ${env.BUILD_ID} completed successfully! Job: ${env.JOB_NAME} ${currentBuild.currentResult}",
-                color: 'good',
-                tokenCredentialId: 'slack-webhook',
-                username: 'Jenkins',
-                iconEmoji: ':jenkins:'
+                tokenCredentialId: 'slack-webhook',  // Use the Slack webhook credential ID
+                username: 'Jenkins',  // Display name for the message
+                iconEmoji: ':jenkins:'  // Optional: Jenkins emoji
             )
         }
         failure {
             slackSend(
-                channel: SLACK_CHANNEL,
+                channel: '#jenkins-alert',  // Slack channel
+                color: 'danger',  // Failure color (red)
                 message: "Upstream Build ${env.BUILD_ID} failed. Please check the logs! Job: ${env.JOB_NAME} ${currentBuild.currentResult}",
-                color: 'danger',
-                tokenCredentialId: 'slack-webhook',
-                username: 'Jenkins',
-                iconEmoji: ':x:'
+                tokenCredentialId: 'slack-webhook',  // Use the Slack webhook credential ID
+                username: 'Jenkins',  // Display name for the message
+                iconEmoji: ':x:'  // Failure emoji
             )
         }
     }
