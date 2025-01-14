@@ -4,6 +4,9 @@ pipeline {
     tools {
         maven 'maven3'
     }
+    environment {
+        MAVEN_OPTS = '--add-opens java.base/java.lang=ALL-UNNAMED'
+    }
 
     environment {
         SCANNER_HOME = tool 'sonar-scanner'
