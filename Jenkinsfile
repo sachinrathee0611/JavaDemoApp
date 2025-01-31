@@ -87,10 +87,14 @@ pipeline {
     }
     post {
         success {
-            slackSend (channel: SLACK_CHANNEL, message: "Pipeline completed successfully :tada:", color: 'good')
+            script {
+                slackSend(channel: env.SLACK_CHANNEL, message: "Pipeline completed successfully :tada:", color: 'good')
+            }
         }
         failure {
-            slackSend (channel: SLACK_CHANNEL, message: "Pipeline failed :x:", color: 'danger')
+            script {
+                slackSend(channel: env.SLACK_CHANNEL, message: "Pipeline failed :x:", color: 'danger')
+            }
         }
    }
 }
